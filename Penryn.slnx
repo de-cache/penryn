@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Penryn.Cli/Penryn.Cli.csproj" />
+  <Project Path="Penryn.Core/Penryn.Core.csproj" />
+</Solution>
