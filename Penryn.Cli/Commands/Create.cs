@@ -53,7 +53,7 @@ public static class Create
 
             Console.WriteLine("Copying example files"); // debug
 
-            if (template != TemplateOptions.None) return;
+            if (template == TemplateOptions.None) return;
             
             // evil block! not a fan
             var assembly = Assembly.GetExecutingAssembly();

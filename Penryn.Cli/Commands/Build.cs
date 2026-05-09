@@ -7,9 +7,6 @@ public static class Build
 {
     public static void BuildProject(string? projectFolder)
     {
-        // todo: make this customizable
-        var definition = new BuildDefinition();
-
         projectFolder ??= Directory.GetCurrentDirectory();
         try
         {
@@ -33,8 +30,16 @@ public static class Build
         }
 
         var rawConfig = File.ReadAllText(Constants.ConfigFileName);
+        if (string.IsNullOrWhiteSpace(rawConfig))
+        {
+            Console.WriteLine("penryn.json is empty");
+            return;
+        }
+
         var config = new Config();
         config.Deserialize(rawConfig);
+
+        var definition = config.BuildOptions;
 
         Parser parser = new(config);
         try
@@ -86,9 +91,9 @@ public static class Build
         Console.WriteLine($"Parsing templates");
         if (Directory.Exists(definition.TemplateFolder))
         {
-            if (File.Exists(Path.Combine(definition.TemplateFolder, Constants.BaseTemplateFileName)))
+            if (File.Exists(Path.Combine(definition.TemplateFolder, definition.BaseTemplateFile)))
             {
-                var res = parser.ParseFile(Path.Combine(definition.TemplateFolder, Constants.BaseTemplateFileName));
+                var res = parser.ParseFile(Path.Combine(definition.TemplateFolder, definition.BaseTemplateFile));
                 var file = new StreamWriter(Path.Combine(definition.OutputFolder, "index.html"));
                 Console.WriteLine(Path.Combine(definition.OutputFolder, "index.html")); // verbose
                 file.Write(res);

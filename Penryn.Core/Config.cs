@@ -30,6 +30,12 @@ public class Config
         "en"; // culture keeps locking itself on "iv" when doing it right, fuck my i18n life
 
     /// <summary>
+    /// The build options of the project, such as what folders are used for discovering and outputting files.
+    /// </summary>
+    [JsonPropertyName("buildOptions")]
+    public BuildDefinition BuildOptions { get; set; } = new();
+
+    /// <summary>
     /// Initializes and returns a default project configuration.
     /// </summary>
     /// <param name="projectName">The name of the project. If not set, defaults to <c>penryn</c>.</param>
