@@ -8,24 +8,25 @@ namespace Penryn.Core;
 /// </summary>
 public class Config
 {
-    private const string ConfigFileName = "penryn.json";
-
     /// <summary>
     /// The name of the project, embeddable across the project.
     /// </summary>
     [JsonRequired]
-    public string ProjectName { get; set; } = "";
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
 
     /// <summary>
     /// A string that briefly describes the project.
     /// </summary>
-    public string ProjectDescription { get; set; } = "";
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = "";
 
     /// <summary>
     /// The language information of the project.
     /// </summary>
     /// <value>The default is the current culture of the operating system.</value>
-    public string ProjectLanguage { get; set; } =
+    [JsonPropertyName("language")]
+    public string Language { get; set; } =
         "en"; // culture keeps locking itself on "iv" when doing it right, fuck my i18n life
 
     /// <summary>
@@ -35,9 +36,9 @@ public class Config
     /// <returns>
     /// A new instance of the <see cref="Config"/> class with pre-defined values.
     /// </returns>
-    public static Config DefaultConfig(string projectName = "penryn") => new()
+    public static Config DefaultConfig(string projectName = Constants.DefaultProjectName) => new()
     {
-        ProjectName = projectName
+        Name = projectName
     };
 
     /// <summary>
@@ -50,7 +51,7 @@ public class Config
     {
         try
         {
-            return JsonSerializer.Serialize(this, ConfigGenerationContext.Default.Config);
+            return JsonSerializer.Serialize((object?)this, ConfigGenerationContext.Default.Config);
         }
         catch (NotSupportedException e)
         {
@@ -66,7 +67,8 @@ public class Config
     /// Translates the passed JSON string into an object of type <see cref="Config"/>.
     /// </summary>
     /// <param name="json">A JSON string representing the object</param>
-    /// <exception cref="JsonException">An error occurred while deserializing the passed JSON.</exception>
+    /// <exception cref="InvalidConfigException">Occurs when the configuration is invalid</exception>
+    /// <exception cref="JsonException">Occurs when the JSON is unable to be parsed successfully</exception>
     public void Deserialize(string json)
     {
         Config? newObj;
@@ -74,13 +76,13 @@ public class Config
         {
             newObj = JsonSerializer.Deserialize<Config>(json, ConfigGenerationContext.Default.Config);
         }
-        catch (ArgumentNullException)
-        {
-            throw new JsonException("Passed JSON is null");
-        }
         catch (JsonException e)
         {
             throw new JsonException($"Failed to deserialize config: {e.Message}");
+        }
+        catch (ArgumentNullException)
+        {
+            throw new JsonException("Passed JSON is null");
         }
         catch (Exception e)
         {
@@ -89,33 +91,19 @@ public class Config
 
         if (newObj != null)
         {
-            ProjectName = newObj.ProjectName;
-            ProjectDescription = newObj.ProjectDescription;
-            ProjectLanguage = newObj.ProjectLanguage;
+            Name = newObj.Name;
+            Description = newObj.Description;
+            Language = newObj.Language;
         }
         else
         {
             throw new InvalidConfigException("Failed to parse config");
         }
     }
-}
 
-/// <summary>
-/// Exception thrown when the configuration file is invalid.
-/// </summary>
-[Serializable]
-public class InvalidConfigException : Exception
-{
-    public InvalidConfigException()
+    public override string ToString()
     {
-    }
-
-    public InvalidConfigException(string message) : base(message)
-    {
-    }
-
-    public InvalidConfigException(string message, Exception inner) : base(message, inner)
-    {
+        return Name;
     }
 }
 

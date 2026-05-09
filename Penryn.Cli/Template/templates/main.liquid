@@ -1,0 +1,9 @@
+<p>This is a simple template built with <a href="https://github.com/de-cache/penryn">penryn</a>.</p>
+<p>To start, change the description in <code>penryn.json</code> and rebuild:</p>
+<div class="description">
+    {% if project.description != blank %}
+        <code>{{ project.description }}</code>
+    {% else %}
+        <code>No description provided.</code>
+    {% endif %}
+</div>

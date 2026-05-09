@@ -1,0 +1,17 @@
+:root {
+    font-family: Arial, Helvetica, sans-serif;
+    color: black;
+    background-color: white;
+}
+
+body {
+    margin: 1rem;
+}
+
+.description {
+    background-color: #111;
+    color: white;
+    font-family: monospace;
+    padding: 1rem;
+    border-radius: 1rem;
+}
