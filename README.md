@@ -17,4 +17,4 @@ and a dashboard for creating new posts.
 
 ## extra stuff
 
-* your config file can be parsed into your documents using ``{{ config.[property] }}``
+* your config file can be parsed into your documents using ``{{ project.[property] }}``
