@@ -21,5 +21,6 @@ public record BuildDefinition(
     [JsonPropertyName("templateFolder")] public string TemplateFolder { get; set; } = TemplateFolder;
     [JsonPropertyName("staticFolder")] public string StaticFolder { get; set; } = StaticFolder;
     [JsonPropertyName("contentFolder")] public string ContentFolder { get; set; } = ContentFolder;
-    [JsonPropertyName("baseTemplateFile")] public string BaseTemplateFile { get; set; } = Constants.BaseTemplateFileName;
+
+    [JsonPropertyName("baseTemplateFile")] public string BaseTemplateFile { get; set; } = BaseTemplateFile;
 }

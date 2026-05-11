@@ -11,7 +11,7 @@ and a dashboard for creating new posts.
 
 1. download git repo
 2. build the project
-3. run ``penryn new <project name, defaults to 'my-penryn-project'>``
+3. run ``penryn create <project name, defaults to 'my-penryn-project'>``
 4. move into your project folder and run ``penryn build``
 5. check out public folder and view the result
 
