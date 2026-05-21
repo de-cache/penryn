@@ -38,7 +38,7 @@ public static class Create
             }
         }
 
-        Logger.LogVerbose($"Creating project in {directory}");
+        Logger.LogInfo($"Creating project in {directory}");
 
         try
         {

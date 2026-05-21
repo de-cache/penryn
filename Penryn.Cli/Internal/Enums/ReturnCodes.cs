@@ -56,11 +56,6 @@ public enum ReturnCodes
     TemplateRenderError,
 
     /// <summary>
-    /// The project folder could not be created.
-    /// </summary>
-    ProjectCreationError,
-
-    /// <summary>
     /// The project configuration file could not be instantiated while creating a new project.
     /// </summary>
     ConfigInstantiationError,

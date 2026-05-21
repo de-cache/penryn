@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
 using Penryn.Cli.Commands;
-using Penryn.Cli.Internal;
 using Penryn.Cli.Internal.Enums;
 using Penryn.Cli.Internal.Logging;
 using Penryn.Core;
@@ -20,7 +19,16 @@ public abstract class Program
         {
             Description = "Sets verbosity level",
             DefaultValueFactory = _ => LogLevel.Info,
-            Recursive = true
+            Recursive = true,
+            CustomParser = result =>
+            {
+                var value = result.Tokens.SingleOrDefault()?.Value;
+                if (LogLevels.TryParse(value, out var level)) return level;
+
+                result.AddError(
+                    $"Invalid verbosity level '{value}'.");
+                return LogLevel.Info;
+            }
         };
 
         var projectName = new Argument<string>("project")
