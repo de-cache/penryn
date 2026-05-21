@@ -65,6 +65,13 @@ public class Parser
         }
     }
 
+    /// <summary>
+    /// Parse a given file
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns>The rendered output of a given file path</returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    /// <exception cref="PenrynParserException"></exception>
     public string ParseFile(string path)
     {
         if (!File.Exists(path))

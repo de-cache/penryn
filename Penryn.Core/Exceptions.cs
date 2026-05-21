@@ -6,7 +6,7 @@ namespace Penryn.Core;
 /// Exception thrown when the configuration file is invalid.
 /// </summary>
 [Serializable]
-internal class InvalidConfigException : Exception
+public class InvalidConfigException : Exception
 {
     public InvalidConfigException()
     {
@@ -24,7 +24,7 @@ internal class InvalidConfigException : Exception
 /// <summary>
 /// Exception thrown when the Penryn parser encounters an error.
 /// </summary>
-internal class PenrynParserException : Exception
+public class PenrynParserException : Exception
 {
     public PenrynParserException()
     {

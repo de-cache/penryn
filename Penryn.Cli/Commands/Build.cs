@@ -1,11 +1,14 @@
 using System.Security;
+using System.Text.Json;
+using Penryn.Cli.Internal.Enums;
+using Penryn.Cli.Internal.Logging;
 using Penryn.Core;
 
 namespace Penryn.Cli.Commands;
 
 public static class Build
 {
-    public static void BuildProject(string? projectFolder)
+    public static int BuildProject(string? projectFolder)
     {
         projectFolder ??= Directory.GetCurrentDirectory();
         try
@@ -14,30 +17,48 @@ public static class Build
         }
         catch (IOException e)
         {
-            Console.WriteLine($"Failed to open project: {e.Message}"); // err
-            return;
+            Logger.LogError($"Failed to open project: {e.Message}");
+            return (int)ReturnCodes.FileAccessError;
         }
         catch (SecurityException e)
         {
-            Console.WriteLine($"Unable to open project: {e.Message}"); // err
-            return;
+            Logger.LogError($"Unable to open project: {e.Message}");
+            return (int)ReturnCodes.FilePermissionError;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"Unexpected errors while opening project: {e.Message}");
+            return (int)ReturnCodes.UnknownError;
         }
 
         if (!File.Exists("penryn.json"))
         {
-            Console.WriteLine("Folder does not contain a Penryn project or is misconfigured"); // err
-            return;
+            Logger.LogError("Folder does not contain a Penryn project or is misconfigured");
+            return (int)ReturnCodes.MissingConfigFile;
         }
 
         var rawConfig = File.ReadAllText(Constants.ConfigFileName);
         if (string.IsNullOrWhiteSpace(rawConfig))
         {
-            Console.WriteLine("penryn.json is empty");
-            return;
+            Logger.LogError("penryn.json is empty");
+            return (int)ReturnCodes.EmptyConfigFile;
         }
 
         var config = new Config();
-        config.Deserialize(rawConfig);
+        try
+        {
+            config.Deserialize(rawConfig);
+        }
+        catch (InvalidConfigException e)
+        {
+            Logger.LogError($"Invalid config file: {e.Message}");
+            return (int)ReturnCodes.BadConfigFile;
+        }
+        catch (JsonException e)
+        {
+            Logger.LogError($"Invalid config file: {e.Message}");
+            return (int)ReturnCodes.BadConfigFile;
+        }
 
         var definition = config.BuildOptions;
 
@@ -48,13 +69,13 @@ public static class Build
         }
         catch (DirectoryNotFoundException)
         {
-            Console.WriteLine("Templates folder does not exist"); // err
-            return;
+            Logger.LogError("Templates folder does not exist");
+            return (int)ReturnCodes.BuildSettingsError;
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Failed to open project: {e.Message}"); // err
-            return;
+            Logger.LogError($"Failed to open project: {e.Message}");
+            return (int)ReturnCodes.UnknownError;
         }
 
         if (Directory.Exists(definition.OutputFolder))
@@ -68,49 +89,64 @@ public static class Build
         var staticFiles =
             Directory.EnumerateFileSystemEntries(Path.Combine(Directory.GetCurrentDirectory(), definition.StaticFolder),
                 "*", SearchOption.AllDirectories);
-        Console.WriteLine($"Copying static files"); // verbose
+        Logger.LogVerbose("Copying static files");
         foreach (var staticFile in staticFiles)
         {
             var fileName = Path.GetRelativePath(Path.Combine(Directory.GetCurrentDirectory(), definition.StaticFolder),
                 staticFile);
             var fileAttr = File.GetAttributes(staticFile);
             if (fileAttr.HasFlag(FileAttributes.Hidden)) continue;
+            var path = Path.Combine(definition.OutputFolder, fileName);
             if (fileAttr.HasFlag(FileAttributes.Directory))
             {
-                Directory.CreateDirectory(Path.Combine(definition.OutputFolder, fileName));
+                Directory.CreateDirectory(path);
             }
             else
             {
-                File.Copy(staticFile, Path.Combine(definition.OutputFolder, fileName));
+                File.Copy(staticFile, path);
             }
 
-            Console.WriteLine(Path.Combine(definition.OutputFolder, fileName));
+            Logger.LogDebug(path);
         }
 
         // parse template files
-        Console.WriteLine($"Parsing templates");
+        Logger.LogVerbose("Parsing templates");
         if (Directory.Exists(definition.TemplateFolder))
         {
             if (File.Exists(Path.Combine(definition.TemplateFolder, definition.BaseTemplateFile)))
             {
-                var res = parser.ParseFile(Path.Combine(definition.TemplateFolder, definition.BaseTemplateFile));
-                var file = new StreamWriter(Path.Combine(definition.OutputFolder, "index.html"));
-                Console.WriteLine(Path.Combine(definition.OutputFolder, "index.html")); // verbose
-                file.Write(res);
-                file.Close();
+                try
+                {
+                    var res = parser.ParseFile(Path.Combine(definition.TemplateFolder, definition.BaseTemplateFile));
+                    var file = new StreamWriter(Path.Combine(definition.OutputFolder, "index.html"));
+                    Logger.LogDebug(Path.Combine(definition.OutputFolder, "index.html"));
+                    file.Write(res);
+                    file.Close();
+                }
+                catch (FileNotFoundException)
+                {
+                    Logger.LogError("Could not find template file");
+                    return (int)ReturnCodes.FileAccessError;
+                }
+                catch (PenrynParserException)
+                {
+                    Logger.LogError($"Unable to parse {Path.Combine(definition.OutputFolder, "index.html")}");
+                    return (int)ReturnCodes.TemplateRenderError;
+                }
             }
             else
             {
-                Console.WriteLine("Could not find baseof.liquid, please create a new template file"); // err
-                return;
+                Logger.LogError("Could not find baseof.liquid, please create a new template file");
+                return (int)ReturnCodes.BaseTemplateNotFound;
             }
         }
         else
         {
-            Console.WriteLine("No templates found"); // err
-            return;
+            Logger.LogError("No templates found");
+            return (int)ReturnCodes.FileAccessError;
         }
 
-        Console.WriteLine("Built successfully"); // normal
+        Logger.LogInfo("Built successfully");
+        return (int)ReturnCodes.Success;
     }
 }

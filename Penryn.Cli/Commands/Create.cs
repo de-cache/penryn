@@ -1,23 +1,44 @@
 using System.Reflection;
 using System.Security;
-using Penryn.Cli.Internal;
+using Penryn.Cli.Internal.Enums;
+using Penryn.Cli.Internal.Logging;
 using Penryn.Core;
 
 namespace Penryn.Cli.Commands;
 
 public static class Create
 {
-    public static void CreateProject(string? projectName, bool force = false, TemplateOptions template = TemplateOptions.Basic)
+    public static int CreateProject(string? projectName, bool force = false,
+        TemplateOptions template = TemplateOptions.Basic)
     {
         var directory = Path.Combine(Directory.GetCurrentDirectory(), projectName ?? Constants.DefaultProjectName);
 
         directory = Path.GetFullPath(directory);
         if (!Directory.Exists(directory))
         {
-            Directory.CreateDirectory(directory);
+            Logger.LogVerbose($"Directory {directory} does not exist, creating blank folder");
+            try
+            {
+                Directory.CreateDirectory(directory);
+            }
+            catch (IOException e)
+            {
+                Logger.LogError($"Failed to create project folder: {e.Message}");
+                return (int)ReturnCodes.FileAccessError;
+            }
+            catch (SecurityException e)
+            {
+                Logger.LogError($"Failed to create project folder: {e.Message}");
+                return (int)ReturnCodes.FilePermissionError;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Failed to create project folder: {e.Message}");
+                return (int)ReturnCodes.UnknownError;
+            }
         }
 
-        Console.WriteLine($"Creating project in {directory}"); // normal
+        Logger.LogVerbose($"Creating project in {directory}");
 
         try
         {
@@ -25,13 +46,23 @@ public static class Create
         }
         catch (IOException e)
         {
-            Console.WriteLine($"Failed to set current directory to {directory}: {e.Message}"); // err
-            return;
+            Logger.LogError($"Failed to set current directory to {directory}: {e.Message}");
+            return (int)ReturnCodes.FileAccessError;
+        }
+        catch (SecurityException e)
+        {
+            Logger.LogError($"Failed to set current directory to {directory}: {e.Message}");
+            return (int)ReturnCodes.FilePermissionError;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"Failed to create project in {directory}: {e.Message}");
+            return (int)ReturnCodes.UnknownError;
         }
 
         if (File.Exists(Path.Combine(directory, Constants.ConfigFileName)) && !force)
         {
-            Console.WriteLine("penryn.json already exists, skipping... (use --force to overwrite)"); // err
+            Logger.LogWarning("penryn.json already exists in folder, skipping... (use --force to overwrite)");
         }
         else
         {
@@ -44,26 +75,34 @@ public static class Create
             }
             catch (SecurityException e)
             {
-                Console.WriteLine($"Failed to create penryn.json: {e.Message}"); // err
+                Logger.LogError($"Failed to create penryn.json: {e.Message}");
+                return (int)ReturnCodes.ConfigInstantiationError;
             }
             catch (IOException e)
             {
-                Console.WriteLine($"Failed to create penryn.json: {e.Message}"); // err
+                Logger.LogError($"Failed to create penryn.json: {e.Message}");
+                return (int)ReturnCodes.ConfigInstantiationError;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Failed to create penryn.json: {e.Message}");
+                return (int)ReturnCodes.ConfigInstantiationError;
             }
 
-            Console.WriteLine("Copying example files"); // debug
+            Logger.LogVerbose("Copying template files");
 
-            if (template == TemplateOptions.None) return;
-            
-            // evil block! not a fan
+            if (template == TemplateOptions.None) return (int)ReturnCodes.Success;
+
             var assembly = Assembly.GetExecutingAssembly();
             var resourceNames =
                 assembly.GetManifestResourceNames();
             if (resourceNames.Length == 0)
             {
-                Console.WriteLine("Error while copying base template");
-                return;
+                Logger.LogError("Unable to find template while copying");
+                return (int)ReturnCodes.TemplateCopyError;
             }
+
+            // evil block! not a fan
             foreach (var resourceName in resourceNames)
             {
                 var fileName = resourceName.Replace("Penryn.Cli.Template.", "")
@@ -72,7 +111,7 @@ public static class Create
                 if (lastSlash != -1)
                     fileName = string.Concat(fileName.AsSpan(0, lastSlash), ".",
                         fileName.AsSpan(lastSlash + 1));
-                Console.WriteLine(fileName);
+                Logger.LogDebug(fileName);
                 var outputPath = Path.Combine(directory, fileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 try
@@ -84,9 +123,12 @@ public static class Create
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Failed to copy {resourceName}: {e.Message}"); // err
+                    Logger.LogError($"Failed to copy {resourceName}: {e.Message}");
+                    return (int)ReturnCodes.TemplateCopyError;
                 }
             }
         }
+
+        return (int)ReturnCodes.Success;
     }
 }
